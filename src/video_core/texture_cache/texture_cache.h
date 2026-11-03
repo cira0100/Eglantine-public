@@ -580,7 +580,7 @@ template <class P>
 SamplerId TextureCache<P>::GetSamplerId(u32 index, bool compute) {
     auto& table = compute ? channel_state->compute_sampler_table : channel_state->graphics_sampler_table;
     if (index > table.current_limit) {
-        LOG_DEBUG(HW_GPU, "Invalid sampler index={}", index);
+        LOG_TRACE(HW_GPU, "Invalid sampler index={}", index);
         return NULL_SAMPLER_ID;
     }
     auto const map_index = index | (compute ? Common::SlotId::TAGGED_VALUE : 0);
@@ -812,7 +812,7 @@ ImageViewId TextureCache<P>::VisitImageView(u32 index, bool compute) {
     index = Tegra::Texture::TextureHeaderIndex(index, table.current_limit,
                                                gpu_memory->UsesNativeTiling());
     if (index > table.current_limit) {
-        LOG_DEBUG(HW_GPU, "Invalid image view index={}", index);
+        LOG_TRACE(HW_GPU, "Invalid image view index={}", index);
         return NULL_IMAGE_VIEW_ID;
     }
     auto const map_index = index | (compute ? Common::SlotId::TAGGED_VALUE : 0);
@@ -1124,8 +1124,8 @@ bool TextureCache<P>::TemporalUpscale(const Tegra::Engines::Fermi2D::Surface& ds
         has_deleted_images = false;
         const ImageId motion_id =
             FindOrInsertImage(motion_info, motion_vectors.Address(), RelaxedOptions{});
-        // The depth only feeds FSR 3.1 (looked up only when FSR can run); without it the stand-in
-        // runs.
+        // The depth only feeds NVIDIA DLSS and FSR 3.1 (looked up only when they can run); without
+        // it the stand-in runs.
         ImageId depth_id{};
         if (depth && motion_id && runtime.WantsTemporalUpscaleDepth()) {
             depth_id = FindOrInsertImage(ImageInfo(*depth), depth->Address(), RelaxedOptions{});

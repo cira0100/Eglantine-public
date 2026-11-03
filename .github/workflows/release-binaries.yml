@@ -15,6 +15,9 @@ on:
     # A binary only changes when build inputs change; docs-only pushes skip the build.
     paths:
       - "src/**"
+      # Test-only changes cannot change a binary: the build configures with BUILD_TESTING=OFF and
+      # YUZU_TESTS=OFF below, so a push that only touches src/tests has nothing to rebuild.
+      - "!src/tests/**"
       - "CMakeLists.txt"
       - "CMakeModules/**"
       - "externals/**"
@@ -178,6 +181,11 @@ jobs:
           cp dist/Eglantine.png "$icon"
           export APPIMAGE_EXTRACT_AND_RUN=1
           export QMAKE="$QT_ROOT_DIR/bin/qmake"
+          # Include Wayland platform plugins and their graphics/shell integrations.
+          export EXTRA_QT_MODULES=waylandcompositor
+          export EXTRA_PLATFORM_PLUGINS='libqwayland-egl.so;libqwayland-generic.so'
+          # Embedded in the AppImage metadata; matches the release tag (build-N) plus the commit.
+          export LDAI_VERSION="build-${GITHUB_RUN_NUMBER}-${GITHUB_SHA::7}"
           export LDAI_OUTPUT="eglantine-${GITHUB_SHA}-${PLATFORM}.AppImage"
           export OUTPUT="$LDAI_OUTPUT"
           export ARCH=x86_64
