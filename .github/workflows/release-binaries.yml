@@ -25,13 +25,14 @@ on:
       - "tools/**"
       - ".patch/**"
       - "cpmfile.json"
+      - "eglantine.profdata"
       - ".github/workflows/release-binaries.yml"
 
 permissions:
   contents: read
 
-# Clang major the PGO build uses, from apt.llvm.org. Eden's profile is written by a current clang
-# and an older reader refuses it, so this has to stay at or above whatever produced eden.profdata;
+# Clang major the PGO build uses, from apt.llvm.org. A profile is written by a current clang and an
+# older reader refuses it, so this has to stay at or above whatever produced eglantine.profdata;
 # bump it when a refreshed profile needs a newer LLVM.
 env:
   PGO_LLVM_VERSION: '23'
@@ -98,14 +99,12 @@ jobs:
             "clang-$PGO_LLVM_VERSION" "lld-$PGO_LLVM_VERSION"
           "clang-$PGO_LLVM_VERSION" --version
 
-      # Eden's periodically updated profile: https://github.com/Eden-CI/PGO
-      - name: Download PGO profile
+      # The profile is in the source tree, where the configure step reads it.
+      - name: Check PGO profile
         shell: bash
         run: |
           set -euo pipefail
-          curl -fsSL -o eden.profdata \
-            https://github.com/Eden-CI/PGO/releases/latest/download/eden.profdata
-          test -s eden.profdata
+          test -s eglantine.profdata
 
       - name: Cache CPM downloads
         uses: actions/cache@v5
@@ -130,7 +129,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          profile="-fprofile-use=$PWD/eden.profdata -Wno-backend-plugin \
+          profile="-fprofile-use=$PWD/eglantine.profdata -Wno-backend-plugin \
             -Wno-profile-instr-unprofiled -Wno-profile-instr-out-of-date"
           cmake -S . -B build/release -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
@@ -144,8 +143,9 @@ jobs:
             -DYUZU_USE_BUNDLED_SDL3=ON \
             -DVulkanHeaders_FORCE_BUNDLED=ON \
             -DVulkanUtilityLibraries_FORCE_BUNDLED=ON \
+            -DENABLE_QT_TRANSLATION=ON \
             -DENABLE_UPDATE_CHECKER=OFF \
-            -DUSE_DISCORD_PRESENCE=OFF \
+            -DUSE_DISCORD_PRESENCE=ON \
             -DUSE_CCACHE=ON \
             "-DCMAKE_C_COMPILER=clang-$PGO_LLVM_VERSION" \
             "-DCMAKE_CXX_COMPILER=clang++-$PGO_LLVM_VERSION" \
@@ -241,4 +241,4 @@ jobs:
             --notes "Automatic Linux x86_64 PGO build of ${GITHUB_REF_NAME} at ${GITHUB_SHA}.
 
           Make the AppImage executable (chmod +x) and run it. It bundles its libraries and needs glibc 2.39 or newer (Ubuntu 24.04, Fedora 40, Debian 13, Arch).
-          It is compiled with profile-guided optimization (clang plus Eden's profile). The .sha256 file holds its checksum."
+          It is compiled with profile-guided optimization (clang plus Eglantine's profile). The .sha256 file holds its checksum."
